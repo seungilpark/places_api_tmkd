@@ -1,23 +1,31 @@
-# Google Places API Integration with TMKD
+# Google Places API for TMKD
 
-## approach 1 : automating event creation in TMKD db
-- automate creating events / places for TMKD with google places
-- e.g. hiking trails, parks, 
-- fetch all those events / places and store in TMKD db in events table
+## setup
+1. npm install
+2. make config.json 
+e.g. 
+```json
+{
+    "key":"asdjkflasjdflkasjdf"
+}
+```
+key is Google Places API key
+
+3. assign  RADIUS: int, TYPES: string[], CITIES:{}, OUTPUT_DIR: path to output JSONs
+
+## output
+e.g.
+./result/Vancouver/Park.json
+./result/Vancouver/Library.json
+./result/Nelson/Park.json
+./result/Nelson/Library.json
+
+with each item in the JSON array being an Event Detail
 
 
-### pros
-- easiest to implement
+## todos
+- place_id refresh request. Google Places API periodically update place_ids so the query to get the details might get Not_found 
+ 
+- SQL script for inserting / updating events
 
-### cons
-- if manually input, updating / managing of the rows will be difficult
-- if 1000s of parks open time etc. is changed, how will one update those on to the db? 
-
-## approach 2 : fetching and displaying
-
-### pros
-- easier to manage once implemented because manging side can be done by google 
-
-### cons
-- in each page, it uses request to the api
-- increased processing due to more frequent transfer from  google api object to tmkd dto to the client side 
+- photo request

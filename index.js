@@ -35,7 +35,7 @@ const axios = require("axios");
 */
 const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 const key = config.key;
-const dir = "./result";
+const OUTPUT_DIR = "./result";
 
 
 // SETUP
@@ -153,11 +153,11 @@ async function main() {
     // console.log(JSON.stringify(CITIES))
     
     // await getPlaceDetail("ChIJnQdtaiLPfFMRrRDt-V3wtZ8")
-    if (!fs.existsSync(dir)){
-      fs.mkdirSync(dir);
+    if (!fs.existsSync(OUTPUT_DIR)){
+      fs.mkdirSync(OUTPUT_DIR);
     }
     for (let city in CITIES) {
-      let subdir = dir + '/' + city
+      let subdir = OUTPUT_DIR + '/' + city
       
       if (!fs.existsSync(subdir)){
         fs.mkdirSync(subdir);

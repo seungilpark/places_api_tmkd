@@ -40,17 +40,17 @@ const OUTPUT_DIR = "./result";
 
 // SETUP
 // RADIUS: distance from a city the API will return places from (unit in meters)
-const RADIUS = 150000
+const RADIUS = 20000
 //Types: types of places
 //https://developers.google.com/places/web-service/supported_types
 const TYPES = [ 
   "park", 
-  // "library", 
-  // "amusement_park", 
-  // "museum", 
-  // "zoo", 
-  // "movie_theater", 
-  // "campground",  
+  "library", 
+  "amusement_park", 
+  "museum", 
+  "zoo", 
+  "movie_theater", 
+  "campground",  
 ] // uncomment type to fetch the given type of places
 
 const CITIES = {
@@ -61,11 +61,68 @@ const CITIES = {
     },
     items: {},
   },
+  "Kootenays": {
+    location: {
+      lat: 49.8685,
+      lng: -117.5237,
+    },
+    items: {},
+  },
+  "Kamloops": {
+    location: {
+      lat: 50.6745,
+      lng: -120.3273,
+    },
+    items: {},
+  },
+  "Kelowna": {
+    location: {
+      lat: 49.8880,
+      lng: -119.4960,
+    },
+    items: {},
+  },
+  "North Vancouver":{
+    location: {
+      lat: 49.3200,
+      lng: -123.0724,
+    },
+    items: {},
+  },
 
   "Nelson":{
     location: {
       lat: 49.5,
       lng: -117.283333,
+    },
+    items: {},
+  },
+
+  "Surrey":{
+    location: {
+      lat: 49.1913,
+      lng: -122.8490,
+    },
+    items: {},
+  },
+  "Burnaby":{
+    location: {
+      lat: 49.2488,
+      lng: -122.9805,
+    },
+    items: {},
+  },
+  "Coquitlam":{
+    location: {
+      lat: 49.2838,
+      lng: -122.7932,
+    },
+    items: {},
+  },
+  "Richmond":{
+    location: {
+      lat: 49.1666,
+      lng: -123.1336,
     },
     items: {},
   }
@@ -77,6 +134,7 @@ const CITIES = {
 
 //photo request
 // https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=CnRtAAAATLZNl354RwP_9UKbQ_5Psy40texXePv4oAlgP4qNEkdIrkyse7rPXYGd9D_Uj1rVsQdWT4oRz4QrYAJNpFX7rzqqMlZw2h2E2y5IKMUZ7ouD_SlcHxYq1yL4KbKUv3qtWgTK0A6QbGh87GB3sscrHRIQiG2RrmU_jF4tENr9wGS_YxoUSSDrYjWmrNfeEHSGSc3FyhNLlBU&key=YOUR_API_KEY
+// https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photoreference=${ref}&key=${key}
 
 /**
  * @param  {city{ location, items }} location
@@ -84,33 +142,38 @@ const CITIES = {
  */
 async function getPlacesIDs(city, type, nextPageToken = "") {
   let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${city.location.lat},${city.location.lng}&radius=${RADIUS}&type=${type}&fields=place_id&key=${key}`;
-
+  
   if (nextPageToken) {
     url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?&key=${key}&pagetoken=${nextPageToken}`;
   }
-
+  
   console.log({ url });
   const response = await axios.get(url);
   // const data = response.data;
   const { results } = response.data
   // data.results.map((item, idx) => console.log("idx: ", idx, "id: ", item.id))
   // const arr = data.results.map((item, idx) => ({ id: item.place_id }));
-  console.log({ results });
-  if (type in city.items) city.items[type] = city.items[type].concat(results.map(place => place.place_id))
-  else city.items[type] = Array.isArray(results) ? results.map(place => place.place_id) : [results.map(place => place.place_id)] 
-
-
+  // console.log({ results });
+  if (type in city.items) {
+    city.items[type] = city.items[type].concat(results.map(place => place.place_id))
+    
+  } else {
+    city.items[type] = Array.isArray(results) ? results.map(place => place.place_id) : [results.map(place => place.place_id)] 
+    
+  }
+  
+  
   
   // console.log({length: data.results.length})
   // console.log({status: data.status})
   // console.log(JSON.stringify(data, undefined, 4))
-
+  
   return response.data;
 }
 
 async function getPlaceDetail(placeId){
   let url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${key}`
-
+  
   // console.log({ url });
   const response = await axios.get(url);
   const { data } = response;
@@ -125,22 +188,24 @@ async function main() {
   try {
     for (let type of TYPES) {
       for (let city in CITIES) {
+        console.log(`start fetching places data (type: ${type}) around ${city}`)
         const result = await getPlacesIDs(CITIES[city], type);
         let nextPageToken = result.next_page_token;
         // console.log({nextPageToken})
-  
+        
         while (nextPageToken) {
           await new Promise((resolve, reject) => {
             setTimeout(resolve.bind(null, undefined), 2000);
           }); // there must be some timeout otherwise places api returns same
-  
+          
           const result = await getPlacesIDs(CITIES[city], type, nextPageToken);
           nextPageToken = result.next_page_token;
           console.log({ nextPageToken });
         }
+        console.log(`finished fetching places data (type: ${type}) around ${city}`)
       }
     }
-
+    
     for (let city in CITIES) {
       for (let type in CITIES[city].items) {
         CITIES[city].items[type] = await Promise.all(CITIES[city].items[type].map(async pid => {
@@ -148,7 +213,7 @@ async function main() {
         }))
       }
     }  
-
+    
     
     // console.log(JSON.stringify(CITIES))
     

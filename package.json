@@ -16,6 +16,8 @@
   "author": "Jeremy Park",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.19.2"
+    "axios": "^0.19.2",
+    "dotenv": "^8.2.0",
+    "mysql": "^2.18.1"
   }
 }

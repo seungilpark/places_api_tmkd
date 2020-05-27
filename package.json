@@ -2,9 +2,9 @@
   "name": "google-places-api-tmkd",
   "version": "1.0.0",
   "description": "use google places api to create events for tmkd",
-  "main": "index.js",
+  "main": "fetchKidsActive.js",
   "scripts": {
-    "start": "node index",
+    "start": "node fetchKidsActive",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -33,8 +33,9 @@ const axios = require("axios");
   }
 
 */
-const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
-const key = config.key;
+// const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
+require("dotenv").config();
+const key = process.env.GOOGLE_PLACES_API_KEY;
 const OUTPUT_DIR = "./result";
 
 

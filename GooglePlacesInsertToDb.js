@@ -2,7 +2,7 @@
 const fs = require("fs");
 const mysql = require("mysql");
 require("dotenv").config();
-const SOURCE = JSON.parse(fs.readFileSync("./output/output.sql", "utf-8"))
+const SOURCE = JSON.parse(fs.readFileSync("./MappedGoogleItemsSQL/output.sql", "utf-8"))
 
 let dbConfig = {
   connectionLimit: 10, // default 10
@@ -51,24 +51,24 @@ async function main () {
   try {
       // await db.query("START TRANSACTION")
        
-      for (let key in SOURCE) {
-        console.log(`initiating inserting events data of ${key} type`)
-        await Promise.all(SOURCE[key].map(sql => query(sql)))
-        console.log(`finishing inserting events data of ${key} type`)
-      }
-  
-  
-      return "done"
-      // await db.query("COMMIT")
+    for (let key in SOURCE) {
+      console.log(`initiating inserting events data of ${key} type`)
+      await Promise.all(SOURCE[key].map(sql => query(sql)))
+      console.log(`finishing inserting events data of ${key} type`)
+    }
+
+
+    process.exit(0);
+
   } catch (error) {
-    console.error(error);
-    return "error"
+    console.error(error.message);
+    process.exit(1);
+  }
     // db.query("ROLL BACK");
-  } 
+} 
   // finally {
   //   await db.release();
   // }
 
-}
 
 main()

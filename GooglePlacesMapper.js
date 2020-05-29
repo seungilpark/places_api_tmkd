@@ -10,10 +10,13 @@
 
 const fs = require("fs");
 const axios = require("axios")
-const BASE_DIR = "./result"
-const OUTPUT_DIR = "./output";
-const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
-const key = config.key;
+const BASE_DIR = "./GooglePlacesResult"
+const OUTPUT_DIR = "./MappedGooglePlacesItems";
+const OUTPUT_FILENAME = "MappedGoogleEvents.json"
+require("dotenv").config();
+const key = process.env.GOOGLE_PLACES_API_KEY
+// const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
+// const key = config.key;
 const VENDOR_ID = 14
 const EVENT_TYPE = "amenity"
 const SOURCE_PLATFORM = "google"
@@ -111,6 +114,49 @@ function filterDuplicates(src){
     }
 }
 
+/**
+ * @param  {} placeObj.address_components
+ * input: google api object's address_components
+ * output tmkd address obj 
+ *  address
+ *  city
+ *  province
+ * 
+ * FIXME: the return value of address_components varies
+ */
+function mapAddress(address_components){
+
+    if (!Array.isArray(address_components) || !address_components.length) return { address: null, city: null, province: null }
+
+    const addr = {}
+
+    const addressComponent = address_components.reduce((acc, curr) => {
+        const type = curr.types && curr.types[0]
+        if (type) {
+            if (type === "administrative_area_level_1") {
+                acc[type] = curr.short_name
+            }
+            else {
+                acc[type] = curr.long_name
+            }
+        }
+        return acc
+    }, {})
+
+    const floor = addressComponent.floor || ""
+    const street_number = addressComponent.street_number || ""
+    const route = addressComponent.route || ""
+    const locality = addressComponent.locality || ""
+    const administrative_area_level_1 = addressComponent.administrative_area_level_1 || ""
+
+    addr.address = `${floor} ${street_number} ${route}`
+    addr.city = locality
+    addr.province = administrative_area_level_1
+    console.log({addr})
+    return addr
+}
+
+
 
 async function mapper(src, output){
     try {
@@ -118,7 +164,7 @@ async function mapper(src, output){
         
             for (let eventDetailObject of src[key]) {
                 const event_TMKD = {}
-        
+                if (eventDetailObject.result.business_status !== "OPERATIONAL" || !(eventDetailObject.result.formatted_address.includes("BC"))) continue
                 event_TMKD.vendor_id = VENDOR_ID
                 event_TMKD.name = eventDetailObject.result.name
                 event_TMKD.event_type = EVENT_TYPE
@@ -128,10 +174,12 @@ async function mapper(src, output){
                 // event_TMKD.end_date = null
         
                 event_TMKD.link = eventDetailObject.result.website
-        
-                event_TMKD.address = eventDetailObject.result.formatted_address.split(", ")[0]
-                event_TMKD.city = eventDetailObject.result.formatted_address.split(", ")[1]
-                event_TMKD.province = eventDetailObject.result.formatted_address.split(", ")[2]
+                const addr = mapAddress(eventDetailObject.result.address_components)
+                event_TMKD.address = addr.address
+                event_TMKD.city = addr.city
+                event_TMKD.province = addr.province
+                console.log({addr: `${event_TMKD.address} ${event_TMKD.city} ${event_TMKD.province}`})
+                
                 event_TMKD.lat = eventDetailObject.result.geometry.location.lat
                 event_TMKD.lng = eventDetailObject.result.geometry.location.lng
                 
@@ -139,12 +187,36 @@ async function mapper(src, output){
         
                 if (eventDetailObject.result.reviews && Array.isArray(eventDetailObject.result.reviews)) {
                     event_TMKD.description =  eventDetailObject.result.reviews.reduce((acc, curr) => {
-                        if (curr.text) acc += `${curr.text}\n - <a href="${curr.author_url}">${curr.author_name}</a>\n`
+                        if (curr.text) acc += `${curr.text} - ${curr.author_name}\n`
                         return acc
                     }, "")
+                    if (eventDetailObject.result.opening_hours) {
+                        if (eventDetailObject.result.opening_hours.weekday_text && Array.isArray(eventDetailObject.result.opening_hours.weekday_text)) {
+                            const schedules = eventDetailObject.result.opening_hours.weekday_text.reduce((acc, curr) => {
+                                acc += curr + "\n"
+                                return acc
+                            }, "")
+
+                            event_TMKD.description += schedules        
+                        }
+                    }
         
                 } else {
-                    event_TMKD.description = null
+
+                    if (eventDetailObject.result.opening_hours) {
+                        if (eventDetailObject.result.opening_hours.weekday_text && Array.isArray(eventDetailObject.result.opening_hours.weekday_text)) {
+                            const schedules = eventDetailObject.result.opening_hours.weekday_text.reduce((acc, curr) => {
+                                acc += curr + "\n"
+                                return acc
+                            }, "")
+
+                            event_TMKD.description = schedules        
+                        }
+                    } else {
+                        event_TMKD.description = "Description Not Found"
+
+                    }
+
                 }
         
                 if (eventDetailObject.result.photos && Array.isArray(eventDetailObject.result.photos)) {
@@ -177,7 +249,7 @@ async function main() {
     
     for (let city of cities) {
         readFiles(BASE_DIR + "/" + city, groupEventDetailsByType)
-        console.log("in cities loop")
+        // console.log("in cities loop")
     }
 
     filterDuplicates(ITEMS)
@@ -190,13 +262,14 @@ async function main() {
         fs.mkdirSync(OUTPUT_DIR);
     }
 
-    fs.writeFileSync(OUTPUT_DIR + "/events.json", JSON.stringify(ITEMS_TMKD, undefined, 4))
+    fs.writeFileSync(OUTPUT_DIR + '/' + OUTPUT_FILENAME, JSON.stringify(ITEMS_TMKD, undefined, 4))
         
         //    const a = JSON.parse(fs.readFileSync("./output/events.json", "utf-8"))
         //     for (let type in a) {
         //         console.log(`${type}'s length: ${a[type].length}` )
         
         //     }
+        process.exit(0)
 }
 
 main()

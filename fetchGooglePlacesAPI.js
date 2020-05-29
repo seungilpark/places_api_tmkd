@@ -36,22 +36,22 @@ const axios = require("axios");
 // const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 require("dotenv").config();
 const key = process.env.GOOGLE_PLACES_API_KEY;
-const OUTPUT_DIR = "./result";
+const OUTPUT_DIR = "./GooglePlacesResult";
 
 
 // SETUP
 // RADIUS: distance from a city the API will return places from (unit in meters)
-const RADIUS = 20000
+const RADIUS = 50000
 //Types: types of places
 //https://developers.google.com/places/web-service/supported_types
 const TYPES = [ 
   "park", 
-  "library", 
-  "amusement_park", 
-  "museum", 
-  "zoo", 
-  "movie_theater", 
-  "campground",  
+  // "library", 
+  // "amusement_park", 
+  // "museum", 
+  // "zoo", 
+  // "movie_theater", 
+  // "campground",  
 ] // uncomment type to fetch the given type of places
 
 const CITIES = {
@@ -126,6 +126,20 @@ const CITIES = {
       lng: -123.1336,
     },
     items: {},
+  },
+  "Langley": {
+    location: {
+      lat: 49.074329,
+      lng: -122.559319,
+    },
+    items:{},
+  },
+  "Abbotsford": {
+    location: {
+      lat: 49.049999,
+      lng: -122.316666,
+    },
+    items:{},
   }
 }
 
@@ -201,7 +215,7 @@ async function main() {
           
           const result = await getPlacesIDs(CITIES[city], type, nextPageToken);
           nextPageToken = result.next_page_token;
-          console.log({ nextPageToken });
+          // console.log({ nextPageToken });
         }
         console.log(`finished fetching places data (type: ${type}) around ${city}`)
       }
@@ -235,10 +249,11 @@ async function main() {
       }
     }  
 
-   
+    process.exit(0);
 
   } catch (error) {
     console.error(error.message);
+    process.exit(1);
   }
 }
 

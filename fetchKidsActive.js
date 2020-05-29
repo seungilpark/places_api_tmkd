@@ -93,8 +93,10 @@ function mapper(kidsActivityEventObject) {
     tmkd_event.vendor_id = VENDOR_ID
     tmkd_event.name = kidsActivityEventObject.assetName
     tmkd_event.event_type = kidsActivityEventObject.place.placeName === "ONLINE" ? "virtual" : "activity"
-    tmkd_event.start_date = kidsActivityEventObject.salesStartDate
-    tmkd_event.end_date = kidsActivityEventObject.salesEndDate
+    // tmkd_event.start_date = kidsActivityEventObject.salesStartDate
+    tmkd_event.start_date = kidsActivityEventObject.activityStartDate
+    // tmkd_event.end_date = kidsActivityEventObject.salesEndDate
+    tmkd_event.end_date = kidsActivityEventObject.activityEndDate
     tmkd_event.start_time = kidsActivityEventObject.activityRecurrences[0].startTime
     tmkd_event.end_time = kidsActivityEventObject.activityRecurrences[0].endtime
     tmkd_event.link = kidsActivityEventObject.registrationUrlAdr

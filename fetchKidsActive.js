@@ -201,23 +201,15 @@ function _Sleep(ms) {
 
 async function main() {
   try {
-  // loop through each of cities and fetch events near the city
-  // filter each event if not Canada/BC, or if closed, ....
-  // filter duplicated event using assetIGuid field
-  // enter event to items []
-  // write items as result.json
     console.time("FETCHING PROCESS");
     for (let cityName of CITIES) {
       await fetchEvents(cityName)
       await _Sleep(2500) // some padding
     }
     console.timeEnd("FETCHING PROCESS");
-    // console.log({ RESULT_ITEMS })
     
-    
-    // loop through tmkdEventObjects and insert each one to db
     console.log("START INSERTING TO DB...")
-    const sql = `INSERT INTO event_test3 SET ?`
+    const sql = `INSERT INTO event_test4 SET ?`
     for (let tmkdEvent of RESULT_ITEMS) {
       try {
         const insertResult = await new Promise((resolve, reject) => {
@@ -228,7 +220,6 @@ async function main() {
         }) 
         
         RESULT_ITEMS_TAG_INFO.find( item => item.id === tmkdEvent.source_id ).idInDb = insertResult.insertId
-        // console.log({"inserted id": insertResult.insertId})
         
       } catch (error) {
         console.error("error while inserting to db,...")
@@ -238,7 +229,6 @@ async function main() {
 
     }
     console.log("FINISHED INSERTING TO DB...")
-    // write the array of tmkd objects into json
     console.log(`WRITING JSONS`)
     if (!fs.existsSync(OUTPUT_DIR)){
       fs.mkdirSync(OUTPUT_DIR);

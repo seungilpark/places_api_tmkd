@@ -46,11 +46,11 @@ const RADIUS = 50000
 //https://developers.google.com/places/web-service/supported_types
 const TYPES = [ 
   "park", 
-  // "library", 
-  // "amusement_park", 
-  // "museum", 
-  // "zoo", 
-  // "movie_theater", 
+  "library", 
+  "amusement_park", 
+  "museum", 
+  "zoo", 
+  "movie_theater", 
   // "campground",  
 ] // uncomment type to fetch the given type of places
 

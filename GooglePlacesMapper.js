@@ -21,7 +21,7 @@ const VENDOR_ID = 14
 const EVENT_TYPE = "amenity"
 const SOURCE_PLATFORM = "google"
 const ITEMS = {
-    "park":[], 
+  "park":[], 
   "library":[], 
   "amusement_park":[], 
   "museum":[], 
@@ -96,8 +96,15 @@ async function getPlacePhoto(ref) {
     return response.request._redirectable._options.href || ""
 }
 /**
- * @param  { object of arrays of event detail objects
- *   whose key is in object[result][id]} src
+ * @param  {
+ *  object {
+ *      typeName1 (e.g. park) :[]
+ *      typeName2 :[]
+ *      ...
+ *  }
+ * 
+ * } src
+ * 
  *  filter others arrays using index array's ids
  */
 function filterDuplicates(src){
@@ -109,7 +116,6 @@ function filterDuplicates(src){
             else {
                 src[otherArr] = src[otherArr].filter(ev => !ids.includes(ev.result.id))
             }
-
         }
     }
 }
@@ -156,22 +162,56 @@ function mapAddress(address_components){
     return addr
 }
 
+function mapDesc({reviews, opening_hours, formatted_address }) {
+    let desc=""
+    let formattedReviews=""
+    let formattedSchedules=""
+    
+    if (reviews && Array.isArray(reviews)) {
+        formattedReviews = reviews.reduce((acc, curr) => {
+            if (curr.text) acc += `${curr.text} - ${curr.author_name}\n`
+            return acc
+        },"")
+    }
 
+    if (opening_hours) {
+        if (opening_hours.weekday_text && Array.isArray(opening_hours.weekday_text)) {
+            formattedSchedules = opening_hours.weekday_text.reduce((acc, curr) => {
+                acc += curr + "\n"
+                return acc
+            }, "")
+        }
+    }                
+    
+    desc += 
+    formatted_address
+    + '\n' +
+    formattedSchedules 
+    //  + formattedReviews
+
+    if (!desc) desc = "No Description Found..."
+
+    return desc
+}
 
 async function mapper(src, output){
     try {
+        const ids = {}
+
         for (let key in src) {
         
             for (let eventDetailObject of src[key]) {
-                const event_TMKD = {}
+                if (ids[eventDetailObject.result.id]) continue // duplicates
                 if (eventDetailObject.result.business_status !== "OPERATIONAL" || !(eventDetailObject.result.formatted_address.includes("BC"))) continue
+                const event_TMKD = {}
                 event_TMKD.vendor_id = VENDOR_ID
                 event_TMKD.name = eventDetailObject.result.name
                 event_TMKD.event_type = EVENT_TYPE
+                const today = new Date()
                 // event_TMKD.start_time = null 
                 // event_TMKD.end_time = null
-                // event_TMKD.start_date = null
-                // event_TMKD.end_date = null
+                event_TMKD.start_date = new Date()
+                event_TMKD.end_date = new Date(today.getFullYear(), 12, 0)
         
                 event_TMKD.link = eventDetailObject.result.website
                 const addr = mapAddress(eventDetailObject.result.address_components)
@@ -183,42 +223,9 @@ async function mapper(src, output){
                 event_TMKD.lat = eventDetailObject.result.geometry.location.lat
                 event_TMKD.lng = eventDetailObject.result.geometry.location.lng
                 
+                event_TMKD.description = mapDesc(eventDetailObject.result)
         
-        
-                if (eventDetailObject.result.reviews && Array.isArray(eventDetailObject.result.reviews)) {
-                    event_TMKD.description =  eventDetailObject.result.reviews.reduce((acc, curr) => {
-                        if (curr.text) acc += `${curr.text} - ${curr.author_name}\n`
-                        return acc
-                    }, "")
-                    if (eventDetailObject.result.opening_hours) {
-                        if (eventDetailObject.result.opening_hours.weekday_text && Array.isArray(eventDetailObject.result.opening_hours.weekday_text)) {
-                            const schedules = eventDetailObject.result.opening_hours.weekday_text.reduce((acc, curr) => {
-                                acc += curr + "\n"
-                                return acc
-                            }, "")
 
-                            event_TMKD.description += schedules        
-                        }
-                    }
-        
-                } else {
-
-                    if (eventDetailObject.result.opening_hours) {
-                        if (eventDetailObject.result.opening_hours.weekday_text && Array.isArray(eventDetailObject.result.opening_hours.weekday_text)) {
-                            const schedules = eventDetailObject.result.opening_hours.weekday_text.reduce((acc, curr) => {
-                                acc += curr + "\n"
-                                return acc
-                            }, "")
-
-                            event_TMKD.description = schedules        
-                        }
-                    } else {
-                        event_TMKD.description = "Description Not Found"
-
-                    }
-
-                }
-        
                 if (eventDetailObject.result.photos && Array.isArray(eventDetailObject.result.photos)) {
                     photoRef = eventDetailObject.result.photos[0].photo_reference;
                 
@@ -227,13 +234,15 @@ async function mapper(src, output){
                     event_TMKD.image_url = null
                     
                 }
-        
+                
                 event_TMKD.source_id = eventDetailObject.result.id
                 event_TMKD.source_platform = SOURCE_PLATFORM
                 event_TMKD.source_endpoint = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${eventDetailObject.result.place_id}`
+                event_TMKD.isApproved = "Pending"
                 // console.log(event_TMKD)
                 
                 output[key].push(event_TMKD)
+                ids[eventDetailObject.result.id] = 1
             }
             
         }    
@@ -252,24 +261,18 @@ async function main() {
         // console.log("in cities loop")
     }
 
-    filterDuplicates(ITEMS)
+    // filterDuplicates(ITEMS)
 
     await mapper(ITEMS, ITEMS_TMKD)
     
     
     if (!fs.existsSync(OUTPUT_DIR)){
-        console.log(4)
         fs.mkdirSync(OUTPUT_DIR);
     }
 
     fs.writeFileSync(OUTPUT_DIR + '/' + OUTPUT_FILENAME, JSON.stringify(ITEMS_TMKD, undefined, 4))
         
-        //    const a = JSON.parse(fs.readFileSync("./output/events.json", "utf-8"))
-        //     for (let type in a) {
-        //         console.log(`${type}'s length: ${a[type].length}` )
-        
-        //     }
-        process.exit(0)
+    process.exit(0)
 }
 
 main()

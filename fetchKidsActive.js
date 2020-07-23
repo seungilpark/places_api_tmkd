@@ -11,6 +11,7 @@ const axios = require("axios");
 const API_KEY = process.env.ACTIVE_DOT_COM_API_KEY;
 const OUTPUT_DIR = "./KidsActiveResult";
 const mysql = require("mysql");
+const cities = require("./cities");
 
 let dbConfig = {
   connectionLimit: 10, // default 10
@@ -53,29 +54,32 @@ const pool = mysql.createPool(dbConfig);
 //   source_endpoint
 // }
 
-
+const CITIES = Object.keys(require("./cities")).map(i => i.replace(" ", "%20"))
 // configure params here
 const VENDOR_ID = 21
 const today = new Date()
 const STR_TODAY = `${today.getFullYear()}-${today.getMonth() >9 ? today.getMonth() % 12 + 1: "0"+ (today.getMonth()+1)}-${today.getDate()}`
 const RADIUS = 40
-const CITIES = [
-  "Vancouver",
-  "Kootenays",
-  "Kamloops",
-  "Kelowna",
-  "North%20Vancouver",
-  "West%20Vancouver",
-  "Port%20Moody",
-  "Vancouver%20West",
-  "Nelson",
-  "Surrey",
-  "Burnaby",
-  "Coquitlam",
-  "Richmond",
-  "Langley",
-  "Abbotsford"
-]
+console.log(CITIES)
+// process.exit(0);
+
+// const CITIES = [
+//   "Vancouver",
+//   "Kootenays",
+//   "Kamloops",
+//   "Kelowna",
+//   "North%20Vancouver",
+//   "West%20Vancouver",
+//   "Port%20Moody",
+//   "Vancouver%20West",
+//   "Nelson",
+//   "Surrey",
+//   "Burnaby",
+//   "Coquitlam",
+//   "Richmond",
+//   "Langley",
+//   "Abbotsford"
+// ]
  
 const RESULT_ITEMS = []
 const RESULT_ITEMS_TAG_INFO = []
@@ -128,6 +132,7 @@ function mapper(kidsActivityEventObject) {
   } catch(err) {
     console.error("Error in mapper()")
     console.error("assetGuid = ", kidsActivityEventObject.assetGuid) 
+    console.error("asset = ", kidsActivityEventObject) 
     
     return null
     
@@ -159,10 +164,14 @@ async function fetchEvents(cityName) {
 
       if (event.assetRegistrableStatus !== "reg-open" || event.place.countryCode !== "CAN" || event.salesStatus !== "registration-open") {
         // console.log({ status: event.assetRegistrableStatus, localeCd: event.localeCd, countryCode: event.place.countryCode, salesStatus: event.salesStatus  })
+        console.log('event.assetRegistrableStatus !== "reg-open"', event.assetRegistrableStatus !== "reg-open")
+        console.log('event.place.countryCode !== "CAN"', event.assetRegistrableStatus !== "reg-open")
+        console.log('event.salesStatus !== "registration-open"', event.assetRegistrableStatus !== "reg-open")
         continue
       } // check invalid event                                    
 
       if (RESULT_DICT[event.assetGuid]) {
+        console.log("RESULT_DICT[event.assetGuid]", RESULT_DICT[event.assetGuid])
         continue
       } //check duplicated                    
 

@@ -45,28 +45,29 @@ const cities = fs.readdirSync(BASE_DIR)
 
 const groupEventDetailsByType = async (eventDetailsBuffer, filename) => {
     const eventDetails = JSON.parse(eventDetailsBuffer)
-    
+    // eventDetailBuffer should be an array of google places objects
+    console.log("in groupEventDetailsByType()", filename)
     switch (filename) {
         case "park.json":
-            ITEMS.park = (eventDetails)
+            ITEMS.park = ITEMS.park.concat(eventDetails) 
             break;
         case "library.json":
-            ITEMS.library = (eventDetails)
+            ITEMS.library = ITEMS.library.concat(eventDetails)
             break;
         case "amusement_park.json":
-            ITEMS.amusement_park = (eventDetails)
+            ITEMS.amusement_park = ITEMS.amusement_park.concat(eventDetails)
             break;
         case "museum.json":
-            ITEMS.museum = (eventDetails)
+            ITEMS.museum = ITEMS.museum.concat(eventDetails)
             break;
         case "zoo.json":
-            ITEMS.zoo = (eventDetails)
+            ITEMS.zoo = ITEMS.zoo.concat(eventDetails)
             break;
         case "movie_theater.json":
-            ITEMS.movie_theater = (eventDetails)
+            ITEMS.movie_theater = ITEMS.movie_theater.concat(eventDetails)
             break;
         case "campground.json":
-            ITEMS.campground = (eventDetails)
+            ITEMS.campground = ITEMS.campground.concat(eventDetails)
             break;
     
         default:
@@ -82,7 +83,7 @@ function readFiles(dirname, onFileContent) {
     const files = fs.readdirSync(dirname)
     
     files.forEach(function(filename) {
-       onFileContent(fs.readFileSync(dirname +"/"+ filename, "utf-8"), filename) 
+       onFileContent(fs.readFileSync(dirname +"/"+ filename, "utf-8"), filename)
     });
 }
 
@@ -132,7 +133,7 @@ function filterDuplicates(src){
  */
 function mapAddress(address_components){
 
-    if (!Array.isArray(address_components) || !address_components.length) return { address: null, city: null, province: null }
+    if (!Array.isArray(address_components) || !(address_components.length)) return { address: null, city: null, province: null }
 
     const addr = {}
 
@@ -158,7 +159,7 @@ function mapAddress(address_components){
     addr.address = `${floor} ${street_number} ${route}`
     addr.city = locality
     addr.province = administrative_area_level_1
-    console.log({addr})
+    // console.log({addr})
     return addr
 }
 
@@ -198,9 +199,14 @@ async function mapper(src, output){
     try {
         const ids = {}
 
-        for (let key in src) {
-        
+        for (let key in src) { // should be the type of events e.g. park
+            console.log({key})
             for (let eventDetailObject of src[key]) {
+                if (!eventDetailObject.result) {
+                    console.log({eventDetailObject})
+                    continue
+                } 
+                
                 if (ids[eventDetailObject.result.id]) continue // duplicates
                 if (eventDetailObject.result.business_status !== "OPERATIONAL" || !(eventDetailObject.result.formatted_address.includes("BC"))) continue
                 const event_TMKD = {}
@@ -218,7 +224,7 @@ async function mapper(src, output){
                 event_TMKD.address = addr.address
                 event_TMKD.city = addr.city
                 event_TMKD.province = addr.province
-                console.log({addr: `${event_TMKD.address} ${event_TMKD.city} ${event_TMKD.province}`})
+                // console.log({addr: `${event_TMKD.address} ${event_TMKD.city} ${event_TMKD.province}`})
                 
                 event_TMKD.lat = eventDetailObject.result.geometry.location.lat
                 event_TMKD.lng = eventDetailObject.result.geometry.location.lng

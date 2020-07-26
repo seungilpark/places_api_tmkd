@@ -4,8 +4,8 @@
   "description": "use google places api to create events for tmkd",
   "main": "GooglePlacesMapper.js",
   "scripts": {
-    "start": "node fetchKidsActive",
-    "test": "node GooglePlacesMapper"
+    "start": "node GooglePlacesAPISearch",
+    "test": "node GooglePlacesAPISearch"
   },
   "keywords": [
     "google",

@@ -1,94 +1,24 @@
-// each folder is a name of city
-// each file name is a type of the event (can be used for taggin)
-
-// make a array of event
-// map eventDetail object with tmkdEvent
-// make a unique array of event details grouped by type 
-
-// make arrays of unique objects
-// 
-
+require("dotenv").config();
 const fs = require("fs");
 const axios = require("axios")
-const BASE_DIR = "./GooglePlacesResult"
+const BASE_DIR = "./GooglePlacesResultDetail"
 const OUTPUT_DIR = "./MappedGooglePlacesItems";
 const OUTPUT_FILENAME = "MappedGoogleEvents.json"
-require("dotenv").config();
-const key = process.env.GOOGLE_PLACES_API_KEY
-// const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
-// const key = config.key;
+const KEY = process.env.GOOGLE_PLACES_API_KEY
+
+
 const VENDOR_ID = 14
 const EVENT_TYPE = "amenity"
 const SOURCE_PLATFORM = "google"
-const ITEMS = {
-  "park":[], 
-  "library":[], 
-  "amusement_park":[], 
-  "museum":[], 
-  "zoo":[],
-  "movie_theater":[],
-  "campground":[],  
-}
-
-const ITEMS_TMKD = {
-    "park":[], 
-  "library":[], 
-  "amusement_park":[], 
-  "museum":[], 
-  "zoo":[],
-  "movie_theater":[],
-  "campground":[],  
-} 
+const ITEMS = require("./searchWordsDictionary") 
+const ITEMS_TMKD = JSON.parse(JSON.stringify(ITEMS))
 
 
-const cities = fs.readdirSync(BASE_DIR)
 
-const groupEventDetailsByType = async (eventDetailsBuffer, filename) => {
-    const eventDetails = JSON.parse(eventDetailsBuffer)
-    // eventDetailBuffer should be an array of google places objects
-    console.log("in groupEventDetailsByType()", filename)
-    switch (filename) {
-        case "park.json":
-            ITEMS.park = ITEMS.park.concat(eventDetails) 
-            break;
-        case "library.json":
-            ITEMS.library = ITEMS.library.concat(eventDetails)
-            break;
-        case "amusement_park.json":
-            ITEMS.amusement_park = ITEMS.amusement_park.concat(eventDetails)
-            break;
-        case "museum.json":
-            ITEMS.museum = ITEMS.museum.concat(eventDetails)
-            break;
-        case "zoo.json":
-            ITEMS.zoo = ITEMS.zoo.concat(eventDetails)
-            break;
-        case "movie_theater.json":
-            ITEMS.movie_theater = ITEMS.movie_theater.concat(eventDetails)
-            break;
-        case "campground.json":
-            ITEMS.campground = ITEMS.campground.concat(eventDetails)
-            break;
-    
-        default:
-            break;
-    }
-}
-/**
- * @param  { string } dirname
- * @param  { fn } onFileContent
- * read all files in /dirname and call onFileContent for each of their file content
- */
-function readFiles(dirname, onFileContent) {
-    const files = fs.readdirSync(dirname)
-    
-    files.forEach(function(filename) {
-       onFileContent(fs.readFileSync(dirname +"/"+ filename, "utf-8"), filename)
-    });
-}
+let MAPPED_ITEMS_COUNT = 0
 
 async function getPlacePhoto(ref) {
-    const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photoreference=${ref}&key=${key}`
+    const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photoreference=${ref}&key=${KEY}`
     const response = await axios.get(url);
     // console.log(response.request._redirectable._options.href)
     
@@ -96,41 +26,7 @@ async function getPlacePhoto(ref) {
     // TODO: will the response always have these properties?
     return response.request._redirectable._options.href || ""
 }
-/**
- * @param  {
- *  object {
- *      typeName1 (e.g. park) :[]
- *      typeName2 :[]
- *      ...
- *  }
- * 
- * } src
- * 
- *  filter others arrays using index array's ids
- */
-function filterDuplicates(src){
-    for (let indexArr in src) {
-        const ids = src[indexArr].map(ev => ev.result.id)
-        
-        for (let otherArr in src) {
-            if (indexArr === otherArr) continue
-            else {
-                src[otherArr] = src[otherArr].filter(ev => !ids.includes(ev.result.id))
-            }
-        }
-    }
-}
 
-/**
- * @param  {} placeObj.address_components
- * input: google api object's address_components
- * output tmkd address obj 
- *  address
- *  city
- *  province
- * 
- * FIXME: the return value of address_components varies
- */
 function mapAddress(address_components){
 
     if (!Array.isArray(address_components) || !(address_components.length)) return { address: null, city: null, province: null }
@@ -248,6 +144,8 @@ async function mapper(src, output){
                 // console.log(event_TMKD)
                 
                 output[key].push(event_TMKD)
+                MAPPED_ITEMS_COUNT++
+                console.log({MAPPED_ITEMS_COUNT})
                 ids[eventDetailObject.result.id] = 1
             }
             
@@ -259,33 +157,35 @@ async function mapper(src, output){
 }
 
 
-
 async function main() {
-    
-    for (let city of cities) {
-        readFiles(BASE_DIR + "/" + city, groupEventDetailsByType)
-        // console.log("in cities loop")
-    }
-
-    // filterDuplicates(ITEMS)
-
-    await mapper(ITEMS, ITEMS_TMKD)
-    
-    
-    if (!fs.existsSync(OUTPUT_DIR)){
-        fs.mkdirSync(OUTPUT_DIR);
-    }
-
-    fs.writeFileSync(OUTPUT_DIR + '/' + OUTPUT_FILENAME, JSON.stringify(ITEMS_TMKD, undefined, 4))
+    try {
+            
+        console.time("mapping") 
+        const files = fs.readdirSync(BASE_DIR)
+        files.forEach( filename => {
+            const searchWord = filename.split(".json")[0]
+            const placeItems = fs.readFileSync(BASE_DIR + "/" + filename, "utf-8")
+            ITEMS[searchWord] = ITEMS[searchWord].concat(JSON.parse(placeItems))
+        })
         
-    process.exit(0)
-}
+        console.log("places fetched count:",  Object.keys(ITEMS).reduce((acc, curr) => acc + ITEMS[curr].length, 0))
+        
+        await mapper(ITEMS, ITEMS_TMKD)
 
+        console.log("ptmkd object mapped count:",  Object.keys(ITEMS_TMKD).reduce((acc, curr) => acc + ITEMS_TMKD[curr].length, 0))
+        console.log({MAPPED_ITEMS_COUNT})    
+        
+        if (!fs.existsSync(OUTPUT_DIR)){
+            fs.mkdirSync(OUTPUT_DIR);
+        }
+        
+        fs.writeFileSync(OUTPUT_DIR + '/' + OUTPUT_FILENAME, JSON.stringify(ITEMS_TMKD, undefined, 4))
+        
+        console.timeEnd("mapping") 
+
+        process.exit(0)
+    } catch (error) {
+        process.exit(1)        
+    }
+}
 main()
-
-
-module.exports = {
-    mapper,
-    readFiles,
-    groupEventDetailsByType
-}

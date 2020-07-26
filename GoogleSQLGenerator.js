@@ -6,13 +6,13 @@ const OUTPUT_DIR = "./MappedGoogleItemsSQL"
 const OUTPUT_FILENAME = "output.sql"
 
 const sql = `
-    INSERT INTO event_test4 SET ?
+    INSERT INTO event2 SET ?
 `
 
 
 for (let type in SOURCE) {
     SOURCE[type] = SOURCE[type].map(ev => mysql.format(sql, ev))
-    console.log({data: SOURCE[type]})
+    // console.log({data: SOURCE[type]})
 }
 
 if (!fs.existsSync(OUTPUT_DIR)){

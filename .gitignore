@@ -4,7 +4,9 @@ config.json
 /result
 .env
 /KidsActiveResult
-/GooglePlacesResult
+/GooglePlacesResult*
 /MappedGooglePlacesItems
 /.vscode
 /MappedGoogleItemsSQL
+
+/archived

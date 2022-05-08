@@ -8,5 +8,9 @@ config.json
 /MappedGooglePlacesItems
 /.vscode
 /MappedGoogleItemsSQL
-
+/NearbySearchResults
 /archived
+/v2/NearbySearchResult
+/v2/PlacesDetailResult
+/v2/MappedGoogleItemsSQL
+/v2/MappedGooglePlacesItems

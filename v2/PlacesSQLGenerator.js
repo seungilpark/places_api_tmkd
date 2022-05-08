@@ -2,23 +2,26 @@
 const fs = require("fs");
 const mysql = require("mysql");
 const SOURCE = JSON.parse(
-  fs.readFileSync("./MappedGooglePlacesItems/MappedGoogleEvents.json", "utf-8")
+  fs.readFileSync(
+    "./MappedGooglePlacesItems/MappedGoogleEventsWithTown.json",
+    "utf-8"
+  )
 );
 const OUTPUT_DIR = "./MappedGoogleItemsSQL";
-const OUTPUT_FILENAME = "output.sql";
+const OUTPUT_FILENAME = "output.js";
 
 const sql = `
     INSERT INTO event SET ?
 `;
-const ids = [];
-for (let type in SOURCE) {
-  SOURCE[type] = SOURCE[type].map((e) => ids.push(e.source_id));
-}
-fs.writeFileSync(
-  OUTPUT_DIR + "/" + "ids.json",
-  JSON.stringify(ids, undefined, 4)
-);
-process.exit(0);
+// const ids = [];
+// for (let type in SOURCE) {
+//   SOURCE[type] = SOURCE[type].map((e) => ids.push(e.source_id));
+// }
+// fs.writeFileSync(
+//   OUTPUT_DIR + "/" + "ids.json",
+//   JSON.stringify(ids, undefined, 4)
+// );
+// process.exit(0);
 
 for (let type in SOURCE) {
   SOURCE[type] = SOURCE[type]
@@ -193,15 +196,9 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR);
 }
 
-// FIXME: should write sql file not json
 fs.writeFileSync(
   OUTPUT_DIR + "/" + OUTPUT_FILENAME,
   JSON.stringify(SOURCE, undefined, 4)
-);
-
-fs.writeFileSync(
-  OUTPUT_DIR + "/" + "ids.json",
-  JSON.stringify(ids, undefined, 4)
 );
 
 process.exit(0);

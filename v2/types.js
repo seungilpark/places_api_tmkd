@@ -1,0 +1,18 @@
+module.exports = [
+  "aquarium",
+  "art_gallery",
+  "bakery",
+  "lodging",
+  "meal_takeaway",
+  "bar",
+  "movie_theater",
+  "museum",
+  "cafe",
+  "campground",
+  "casino",
+  "restaurant",
+  "spa",
+  "stadium",
+  "tourist_attraction",
+  "zoo",
+];

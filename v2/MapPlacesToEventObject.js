@@ -1,12 +1,13 @@
+require("dotenv").config({ path: __dirname + "/./../.env" });
+const key = process.env.GOOGLE_PLACES_API_KEY;
 const fs = require("fs");
 const axios = require("axios");
-const BASE_DIR = "./GooglePlacesResult";
+const BASE_DIR = "./PlacesDetailResult";
 const OUTPUT_DIR = "./MappedGooglePlacesItems";
 const OUTPUT_FILENAME = "MappedGoogleEvents.json";
-const TYPES = require("./config/google_places_types");
-require("dotenv").config();
-const key = process.env.GOOGLE_PLACES_API_KEY;
-const END_DATE = "2022-12-31";
+const OUTPUT_FILENAME2 = "MappedGoogleEventsWithTown.json";
+const TYPES = require("./types");
+const END_DATE = "2032-12-31";
 const VENDOR_ID = 14;
 const EVENT_TYPE = "amenity";
 const SOURCE_PLATFORM = "google";
@@ -19,6 +20,9 @@ const ITEMS_TMKD = TYPES.reduce((typeNameDictionary, typeName) => {
   typeNameDictionary[typeName] = [];
   return typeNameDictionary;
 }, {});
+const MAPPED = JSON.parse(
+  fs.readFileSync(OUTPUT_DIR + "/" + OUTPUT_FILENAME, "utf-8")
+);
 
 const cities = fs.readdirSync(BASE_DIR);
 
@@ -104,14 +108,49 @@ function mapDesc({ reviews, opening_hours, formatted_address }) {
   desc += formatted_address + "\n" + formattedSchedules;
   return desc;
 }
-
+async function mapNeighborhood(src, dest) {
+  try {
+    let n = 0;
+    const ids = {};
+    for (let typeName in src) {
+      console.log(`mapping ${typeName} type places started...`);
+      console.time(`mapping ${typeName} type`);
+      for (let eventDetailObject of src[typeName]) {
+        console.log(`${++n}th item is getting mapped`);
+        if (!eventDetailObject.result) continue;
+        if (ids[eventDetailObject.result.place_id]) continue; // remove duplicates
+        if (
+          eventDetailObject.result.business_status !== "OPERATIONAL" ||
+          !eventDetailObject.result.formatted_address.includes("BC")
+        )
+          continue;
+        const event_TMKD = dest[typeName].find(
+          (tmkdObj) => tmkdObj.source_id === eventDetailObject.result.place_id
+        );
+        if (!event_TMKD) continue;
+        if (eventDetailObject.result?.address_components?.length) {
+          const neighborhood =
+            eventDetailObject.result.address_components.find((addrComp) =>
+              addrComp.types.includes("neighborhood")
+            ) || null;
+          if (neighborhood) event_TMKD.town = neighborhood.long_name;
+        }
+      }
+      console.timeEnd(`mapping ${typeName} type`);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
 async function mapper(src, output) {
   try {
+    let n = 0;
     const ids = {};
     for (let key in src) {
       console.log(`mapping ${key} type places started...`);
       console.time(`mapping ${key} type`);
       for (let eventDetailObject of src[key]) {
+        console.log(`${++n}th item is getting mapped`);
         if (!eventDetailObject.result) continue;
         if (ids[eventDetailObject.result.place_id]) continue; // remove duplicates
         if (
@@ -157,6 +196,7 @@ async function mapper(src, output) {
           event_TMKD.image_url = null;
         }
         event_TMKD.source_id = eventDetailObject.result.place_id;
+        event_TMKD.source_types = eventDetailObject.result.types.join(", ");
         event_TMKD.source_platform = SOURCE_PLATFORM;
         event_TMKD.source_endpoint = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${eventDetailObject.result.place_id}`;
         event_TMKD.isApproved = "Pending";
@@ -175,11 +215,59 @@ async function main() {
   for (let city of cities) {
     readFiles(BASE_DIR + "/" + city, groupEventDetailsByType);
   }
+  // const neighborhoodNames = [];
+  // const cityNames = [];
+  // for (const typeName in ITEMS) {
+  //   for (const placeObj of ITEMS[typeName]) {
+  //     if (placeObj.result?.address_components?.length) {
+  //       const neighborhood =
+  //         placeObj.result.address_components.find((addrComp) =>
+  //           addrComp.types.includes("neighborhood")
+  //         ) || null;
+  //       if (neighborhood) neighborhoodNames.push(neighborhood);
+  //       const city =
+  //         placeObj.result.address_components.find((addrComp) =>
+  //           addrComp.types.includes("locality")
+  //         ) || null;
+  //       if (city) cityNames.push(city);
+  //     }
+  //   }
+  // }
+
+  // const filteredCityNamesObj = cityNames.reduce((arr, city) => {
+  //   if (!arr.includes(city.long_name)) arr.push(city.long_name);
+  //   return arr;
+  // }, []);
+
+  // const filteredNeighborhoods = neighborhoodNames.reduce((arr, n) => {
+  //   if (!arr.includes(n.long_name)) arr.push(n.long_name);
+  //   return arr;
+  // }, []);
+  // console.log({ filteredCityNamesObj, filteredNeighborhoods });
+
+  // fs.writeFileSync(
+  //   "./cityNames.js",
+  //   JSON.stringify(filteredCityNamesObj, undefined, 2)
+  // );
+  // fs.writeFileSync(
+  //   "./neighborhoods.js",
+  //   JSON.stringify(filteredNeighborhoods, undefined, 2)
+  // );
+  // process.exit(0);
+
   // comment below line when actually running
   // let totalPlaceCount = 0;
-  // for (const type in ITEMS) totalPlaceCount += ITEMS[type].length;
+  // for (const type in ITEMS) totalPlaceCount += ITEMS[type].filter(p => p.status === 'OK').length;
   // console.log(totalPlaceCount);
   // return;
+  //add neighbnorhoood only
+  await mapNeighborhood(ITEMS, MAPPED);
+  fs.writeFileSync(
+    OUTPUT_DIR + "/" + OUTPUT_FILENAME2,
+    JSON.stringify(MAPPED, undefined, 4)
+  );
+  process.exit(0);
+  //mapper
   console.time("mapping");
   await mapper(ITEMS, ITEMS_TMKD);
   console.timeEnd("mapping");

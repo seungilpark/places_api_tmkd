@@ -1,12 +1,4 @@
-const fs = require("fs");
-const CITIES = require("./config/google_places_cities");
-const TYPES = require("./config/google_places_types");
-const { getPlacesIDs } = require("./getPlacesIDs");
-const { getPlaceDetail } = require("./getPlaceDetail");
-const OUTPUT_DIR = "./GooglePlacesResult";
-const NEARBY_SEARCH_OUTPUT_DIR = "./NearbySearchResults";
-
-async function main() {
+async function fetchNearbyPlaces() {
   try {
     console.time("fetching nearby places");
     for (let type of TYPES) {
@@ -72,9 +64,3 @@ async function main() {
     process.exit(1);
   }
 }
-
-main();
-
-module.exports = {
-  getPlaceDetail,
-};

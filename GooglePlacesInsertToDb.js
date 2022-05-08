@@ -2,7 +2,12 @@
 const fs = require("fs");
 const mysql = require("mysql");
 require("dotenv").config();
-const SOURCE = JSON.parse(fs.readFileSync("./MappedGoogleItemsSQL/output.sql", "utf-8"))
+const SOURCE = JSON.parse(
+  fs.readFileSync("./MappedGoogleItemsSQL/output.sql", "utf-8")
+);
+const IDS = JSON.parse(
+  fs.readFileSync("./MappedGoogleItemsSQL/ids.json", "utf-8")
+);
 
 let dbConfig = {
   connectionLimit: 10, // default 10
@@ -46,29 +51,36 @@ const query = (sql, binding) => {
     });
   });
 };
-async function main () {
-  // const db = await connection();
-  try {
-      // await db.query("START TRANSACTION")
-       
-    for (let key in SOURCE) {
-      console.log(`initiating inserting events data of ${key} type`)
-      await Promise.all(SOURCE[key].map(sql => query(sql)))
-      console.log(`finishing inserting events data of ${key} type`)
-    }
 
+async function main() {
+  try {
+    //   console.log({ IDS });
+    //   const sql = mysql.format(
+    //     "SELECT event_id FROM event WHERE source_id in (?) ",
+    //     IDS.join(", ")
+    //   );
+    //   console.log({ sql });
+    //   const result = await query(sql);
+    //   console.log({ count: IDS.length });
+    //   console.log({ result });
+    //   process.exit(0);
+    console.time("inserting");
+    for (let key in SOURCE) {
+      console.log(`initiating inserting events data of ${key} type`);
+      await Promise.all(SOURCE[key].map((sql) => query(sql)));
+      console.log(`finishing inserting events data of ${key} type`);
+    }
+    console.timeEnd("inserting");
 
     process.exit(0);
-
   } catch (error) {
     console.error(error.message);
     process.exit(1);
   }
-    // db.query("ROLL BACK");
-} 
-  // finally {
-  //   await db.release();
-  // }
+  // db.query("ROLL BACK");
+}
+// finally {
+//   await db.release();
+// }
 
-
-main()
+main();
